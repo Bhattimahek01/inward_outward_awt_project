@@ -15,6 +15,7 @@ import {
     ChevronRight,
     LogOut
 } from "lucide-react";
+import { deleteCookie } from "cookies-next";
 
 const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -25,35 +26,83 @@ const menuItems = [
     { name: "Modes", href: "/masters/mode", icon: ExternalLink },
     { name: "From/To", href: "/masters/from-to", icon: Users },
     { name: "Courier Companies", href: "/masters/courier", icon: Truck },
+    { name: "Admin Master", href: "/masters/admins", icon: Users },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [role, setRole] = useState<string | null>(null);
-    const [user, setUser] = useState({ name: "User", email: "user@example.com" });
+    const [user, setUser] = useState<{ name: string; email: string; profilePath?: string | null }>({
+        name: "User",
+        email: "user@example.com",
+        profilePath: null
+    });
 
+    // Initialize from localStorage immediately to prevent layout shift
     useEffect(() => {
         const storedRole = localStorage.getItem("userRole");
         const storedName = localStorage.getItem("userName");
         const storedEmail = localStorage.getItem("userEmail");
 
-        if (storedRole) setRole(storedRole);
-        if (storedName && storedEmail) {
-            setUser({ name: storedName, email: storedEmail });
+        if (storedRole) setRole(storedRole.toLowerCase());
+        if (storedName || storedEmail) {
+            setUser(prev => ({
+                ...prev,
+                name: storedName || "User",
+                email: storedEmail || "user@example.com"
+            }));
         }
-    }, [pathname]);
+    }, []);
+
+    const fetchUserProfile = async (email: string) => {
+        if (!email) return;
+        try {
+            // Added timestamp to bypass browser cache and ensure fresh data
+            const res = await fetch(`/api/profile?email=${email}&t=${Date.now()}`, {
+                cache: 'no-store'
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setUser({
+                    name: data.Name || data.Email.split('@')[0],
+                    email: data.Email,
+                    profilePath: data.ProfilePath
+                });
+                if (data.role) setRole(data.role.RoleName.toLowerCase());
+            }
+        } catch (err) {
+            console.error("Sidebar fetch error:", err);
+        }
+    };
+
+    useEffect(() => {
+        const storedEmail = localStorage.getItem("userEmail");
+        if (storedEmail) {
+            fetchUserProfile(storedEmail);
+        }
+
+        // Listen for profile updates from other components
+        const handleProfileUpdate = () => {
+            const latestEmail = localStorage.getItem("userEmail");
+            const latestRole = localStorage.getItem("userRole");
+            if (latestRole) setRole(latestRole.toLowerCase());
+            if (latestEmail) fetchUserProfile(latestEmail);
+        };
+
+        window.addEventListener('profile-updated', handleProfileUpdate);
+        return () => window.removeEventListener('profile-updated', handleProfileUpdate);
+    }, []); // Only run once on mount
 
     const handleLogout = () => {
         localStorage.clear();
+        deleteCookie("token");
         router.push("/login");
     };
 
-    // Don't show sidebar on login page
-    if (pathname === "/login") return null;
-
     const filteredMenuItems = menuItems.filter(item => {
-        if (role === 'clerk') {
+        const userRole = role?.toLowerCase();
+        if (userRole === 'clerk') {
             // Clerks only see Dashboard and Transaction entries
             return item.name === 'Dashboard' ||
                 item.name === 'Inward Entry' ||
@@ -72,7 +121,7 @@ export default function Sidebar() {
                 {filteredMenuItems.map((item, idx) => {
                     if (item.type === "divider") {
                         return (
-                            <div key={idx} className="pt-6 pb-2 px-4">
+                            <div key={`divider-${idx}`} className="pt-6 pb-2 px-4">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                     {item.label}
                                 </p>
@@ -81,7 +130,10 @@ export default function Sidebar() {
                     }
 
                     const Icon = item.icon!;
-                    const isActive = pathname === item.href;
+                    // Check if active: exact match OR starts with href (for sub-pages), but avoid "/" matching everything
+                    const isActive = item.href === "/"
+                        ? pathname === "/"
+                        : pathname === item.href || pathname.startsWith(item.href + "/");
 
                     return (
                         <Link
@@ -99,16 +151,33 @@ export default function Sidebar() {
 
             <div className="p-6 border-t border-[var(--border)] bg-slate-50/50">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-200 border border-white overflow-hidden">
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt="avatar" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{user.name}</p>
-                        <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                    </div>
+                    <Link
+                        href="/profile"
+                        className="flex items-center gap-3 flex-1 min-w-0 group hover:bg-[var(--primary)]/30 p-2 rounded-2xl transition-all"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-slate-200 border border-white overflow-hidden shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center bg-slate-100">
+                            {user.profilePath ? (
+                                <img
+                                    src={user.profilePath}
+                                    alt="avatar"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        // Fallback if image fails to load
+                                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`;
+                                    }}
+                                />
+                            ) : (
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt="avatar" />
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-900 truncate group-hover:text-[var(--primary-foreground)] transition-colors">{user.name}</p>
+                            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                        </div>
+                    </Link>
                     <button
                         onClick={handleLogout}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                        className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-100 shadow-sm"
                         title="Logout"
                     >
                         <LogOut size={18} />

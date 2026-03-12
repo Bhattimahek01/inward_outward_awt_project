@@ -14,25 +14,18 @@
 }
 
 :root {
-  /* SINGLE PASTEL BLUE THEME - Change these to update the whole site */
-  --primary: #dbeafe;
-  /* Pastel Blue */
-  --primary-foreground: #1e3a8a;
-  /* Dark Blue Text */
-  --secondary: #eff6ff;
-  /* Very Light Blue */
-  --muted: #f1f5f9;
-  --accent: #bfdbfe;
-  /* Accent Blue */
-  --border: #dbeafe;
-  /* Matching Border */
+  /* SINGLE PASTEL LAVENDER THEME */
+  --primary: #ede9fe;               /* Soft Lavender */
+  --primary-foreground: #4c1d95;    /* Deep Purple Text */
+  --secondary: #f5f3ff;             /* Very Light Lavender */
+  --muted: #f3e8ff;
+  --accent: #ddd6fe;                /* Accent Lavender */
+  --border: #e9d5ff;
   --input: #ffffff;
-  /* White input for contrast */
-  --ring: #93c5fd;
-  /* Focus ring */
+  --ring: #c4b5fd;
 
   --background: #ffffff;
-  --foreground: #0f172a;
+  --foreground: #2e1065;
 
   --radius: 0.75rem;
 }

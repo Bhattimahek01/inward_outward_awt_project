@@ -1,30 +1,17 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 
-const prismaClientSingleton = () => {
-    if (!process.env.DATABASE_URL) {
-        throw new Error("DATABASE_URL environment variable is not set");
-    }
-
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const adapter = new PrismaPg(pool);
-
-    return new PrismaClient({
-        adapter,
-        log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-    });
+const globalForPrisma = globalThis as unknown as {
+    prisma: PrismaClient | undefined;
 };
 
-declare global {
-    // eslint-disable-next-line no-var
-    var prisma: PrismaClient | undefined;
-}
+const connectionString = process.env.DATABASE_URL;
 
-const prisma = globalThis.prisma ?? prismaClientSingleton();
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 
-export default prisma;
+// For Prisma 7, we use the driver adapter
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
-if (process.env.NODE_ENV !== "production") {
-    globalThis.prisma = prisma;
-}
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

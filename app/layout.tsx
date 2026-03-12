@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import Sidebar from "./components/Sidebar";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
   description: "A digital logbook for organizations",
 };
 
+import LayoutWrapper from "./components/LayoutWrapper";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,12 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${outfit.variable} font-sans antialiased text-slate-900`}>
-        <div className="flex min-h-screen bg-white">
-          <Sidebar />
-          <main className="flex-1 overflow-x-hidden bg-[#fafafa]">
-            {children}
-          </main>
-        </div>
+        <LayoutWrapper>
+          {children}
+        </LayoutWrapper>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

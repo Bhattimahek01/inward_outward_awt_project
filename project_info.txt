@@ -1,0 +1,63 @@
+Project Information: Inward-Outward Application
+
+1. Database Used
+----------------
+- Database System: PostgreSQL
+- ORM (Object-Relational Mapper): Prisma
+
+2. Technologies Used
+--------------------
+- Frontend framework: Next.js (Version 16.1.1)
+- UI Library: React (Version 19.2.3)
+- Styling: Tailwind CSS (with tailwind-merge, clsx)
+- Database Communication: Prisma Client (@prisma/client, @prisma/adapter-pg, pg)
+- API Requests: Axios
+- Authentication: jsonwebtoken, jose, cookies-next
+- Icons: lucide-react
+- Charts: recharts
+- Notifications/Toasts: sonner
+- Excel Export: xlsx
+
+3. Tables Used in the Database
+------------------------------
+- Role
+- Team
+- User
+- InwardOutwardOffice
+- InOutwardFromTo
+- InOutwardMode
+- CourierCompany
+- Inward
+- Outward
+
+4. Relationships Between Tables
+-------------------------------
+- User & Role: A User belongs to exactly one Role (e.g., Admin, Manager).
+- User & Team: A User can optionally belong to one Team.
+- Inward & Modes/Entities: 
+  - Each Inward entry is linked to an InOutwardMode (how it was received, e.g., Post, Email).
+  - Each Inward entry is linked to an InOutwardFromTo (who it came from).
+  - Built-in tracking of which user created the entry (UserId).
+  - Linked to respective Offices (To and From inward-outward offices).
+- Outward & Modes/Entities/Couriers:
+  - Each Outward entry is linked to an InOutwardMode (how it's being sent).
+  - Each Outward entry is linked to an InOutwardFromTo (who it's going to).
+  - Linked to a specific CourierCompany if sent via courier.
+  - Can be optionally linked to a specific Inward record as a response.
+  - Linked to respective Offices (To and From inward-outward offices).
+  - Keeps track of the user who created the outward entry (UserId).
+
+5. Form Fill Actions and Data Destinations
+------------------------------------------
+When a user fills out a specific form on the application, here is where the data goes:
+
+- Transaction Forms:
+  - "Add Inward" Form: Hits the API route `/api/transactions/inward` and inserts data into the `Inward` table.
+  - "Add Outward" Form: Hits the API route `/api/transactions/outward` and inserts data into the `Outward` table.
+
+- Master Entry Forms:
+  - "Add Office" Form: Hits the API route `/api/masters/office` and creates a new office in the `InwardOutwardOffice` table.
+  - "Add Mode" Form: Hits the API route `/api/masters/mode` and creates a new delivery mode in the `InOutwardMode` table.
+  - "Add Courier" Form: Hits the API route `/api/masters/courier` and saves the company details in the `CourierCompany` table.
+  - "Add Sender/Receiver (From-To)" Form: Hits the API route `/api/masters/from-to` and saves the entity in the `InOutwardFromTo` table.
+  - "Add Admin/User" Form: Hits the API route `/api/masters/admins` and inserts the new user in the `User` table.
