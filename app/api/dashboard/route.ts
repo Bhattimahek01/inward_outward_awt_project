@@ -84,17 +84,28 @@ export async function GET(request: Request) {
       });
     }
 
-    inwardVolume.forEach((item) => {
-      const dateStr = new Date(item.InwardDate).toISOString().split("T")[0];
-      if (volumeMap.has(dateStr)) {
-        volumeMap.get(dateStr)!.inward = item._count.InwardID;
+    // Type definition for Prisma groupBy result items
+    type VolumeStatItem = {
+      _count: { InwardID?: number; OutwardID?: number };
+      InwardDate?: Date;
+      OutwardDate?: Date;
+    };
+
+    (inwardVolume as VolumeStatItem[]).forEach((item) => {
+      if (item.InwardDate) {
+        const dateStr = new Date(item.InwardDate).toISOString().split("T")[0];
+        if (volumeMap.has(dateStr)) {
+          volumeMap.get(dateStr)!.inward = item._count.InwardID || 0;
+        }
       }
     });
 
-    outwardVolume.forEach((item) => {
-      const dateStr = new Date(item.OutwardDate).toISOString().split("T")[0];
-      if (volumeMap.has(dateStr)) {
-        volumeMap.get(dateStr)!.outward = item._count.OutwardID;
+    (outwardVolume as VolumeStatItem[]).forEach((item) => {
+      if (item.OutwardDate) {
+        const dateStr = new Date(item.OutwardDate).toISOString().split("T")[0];
+        if (volumeMap.has(dateStr)) {
+          volumeMap.get(dateStr)!.outward = item._count.OutwardID || 0;
+        }
       }
     });
 
@@ -103,7 +114,13 @@ export async function GET(request: Request) {
     // Process Mode Data
     // Needs mode names, so we fetch them first
     const modes = await prisma.inOutwardMode.findMany();
-    const modeChartData = modeStats.map((stat) => {
+    
+    type ModeStatItem = {
+      InOutwardModeID: number | null;
+      _count: { InwardID: number };
+    };
+
+    const modeChartData = (modeStats as ModeStatItem[]).map((stat) => {
       const modeName =
         modes.find((m) => m.InOutwardModeID === stat.InOutwardModeID)
           ?.InOutwardModeName || "Unknown";
